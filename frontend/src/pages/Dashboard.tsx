@@ -1,4 +1,5 @@
 import React from 'react';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useDashboardStats } from '../hooks';
 
 const statCards = [
@@ -10,7 +11,34 @@ const statCards = [
   { key: 'uptime', label: 'Uptime', color: '#0891b2', suffix: '%' },
 ];
 
-const Dashboard: React.FC = () => {
+interface StatsGridProps {
+  stats: Record<string, unknown> | undefined;
+}
+
+const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => (
+  <div className="stats-grid">
+    {statCards.map((card) => (
+      <div key={card.key} className="stat-card">
+        <div
+          className="stat-card-indicator"
+          style={{ backgroundColor: card.color }}
+        />
+        <div className="stat-card-content">
+          <span className="stat-card-label">{card.label}</span>
+          <span
+            className="stat-card-value"
+            style={{ color: card.color }}
+          >
+            {String(stats?.[card.key] ?? ' - ')}
+            {card.suffix || ''}
+          </span>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const DashboardContent: React.FC = () => {
   const { data: stats, isLoading, error } = useDashboardStats();
 
   if (isLoading) {
@@ -39,26 +67,12 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      <div className="stats-grid">
-        {statCards.map((card) => (
-          <div key={card.key} className="stat-card">
-            <div
-              className="stat-card-indicator"
-              style={{ backgroundColor: card.color }}
-            />
-            <div className="stat-card-content">
-              <span className="stat-card-label">{card.label}</span>
-              <span
-                className="stat-card-value"
-                style={{ color: card.color }}
-              >
-                {String((stats as any)?.[card.key] ?? ' - ')}
-                {card.suffix || ''}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ErrorBoundary
+        fallbackTitle="Dashboard metrics unavailable"
+        fallbackMessage="The metric cards could not be rendered, but the rest of the dashboard remains available."
+      >
+        <StatsGrid stats={stats as Record<string, unknown> | undefined} />
+      </ErrorBoundary>
 
       <div className="dashboard-panels">
         <div className="panel">
@@ -77,5 +91,14 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+const Dashboard: React.FC = () => (
+  <ErrorBoundary
+    fallbackTitle="Dashboard unavailable"
+    fallbackMessage="A dashboard panel failed to render. Navigation and the rest of the app remain available."
+  >
+    <DashboardContent />
+  </ErrorBoundary>
+);
 
 export default Dashboard;
